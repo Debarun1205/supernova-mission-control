@@ -1,7 +1,7 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import * as comlink from 'comlink';
+import * as Comlink from 'comlink';
 import { useMissionStore } from '../../../store/useMissionStore';
 import axios from 'axios';
 
@@ -9,32 +9,31 @@ import axios from 'axios';
 const worker = new Worker(new URL('../../../workers/propagator.worker.ts', import.meta.url), {
   type: 'module'
 });
-const propagator = comlink.wrap<any>(worker);
+const propagator = Comlink.wrap<any>(worker);
 
 export function Catalogue() {
   const pointsRef = useRef<THREE.Points>(null);
   const [positions, setPositions] = useState<Float32Array | null>(null);
-  const simulationTime = useMissionStore(state => state.simulationTime);
 
   useEffect(() => {
-    // Load catalogue
     axios.get('http://localhost:3000/api/satellites').then(async (res) => {
       const count = await propagator.loadCatalogue(res.data);
-      console.log(Loaded  satellites in worker.);
-      // Initial propagate
-      const pos = await propagator.propagateAll(simulationTime);
-      setPositions(pos);
+      console.log(`Loaded ${count} satellites in worker.`);
+      const pos = await propagator.propagateAll(Date.now());
+      setPositions(new Float32Array(pos));
+    }).catch(err => {
+      console.warn('Could not load catalogue from server:', err.message);
+      // Use empty array so globe still renders
+      setPositions(new Float32Array(0));
     });
   }, []);
 
   useFrame(async () => {
-    if (pointsRef.current && pointsRef.current.geometry) {
-      // Fetch new positions from worker
-      // (In a real high-perf app, this should be double-buffered or requestAnimationFrame synced)
-      const pos = await propagator.propagateAll(useMissionStore.getState().simulationTime);
-      pointsRef.current.geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-      pointsRef.current.geometry.attributes.position.needsUpdate = true;
-    }
+    if (!pointsRef.current?.geometry) return;
+    const pos = await propagator.propagateAll(useMissionStore.getState().simulationTime);
+    const arr = new Float32Array(pos);
+    pointsRef.current.geometry.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+    pointsRef.current.geometry.attributes.position.needsUpdate = true;
   });
 
   if (!positions) return null;
@@ -52,7 +51,7 @@ export function Catalogue() {
       <pointsMaterial
         size={0.05}
         color={0x5CE1FF}
-        transparent={true}
+        transparent
         opacity={0.8}
         blending={THREE.AdditiveBlending}
         depthWrite={false}
