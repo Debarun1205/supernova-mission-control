@@ -38,12 +38,12 @@ function App() {
       {/* 3D Globe */}
       <Globe />
 
-      {/* Top-left branding + clock */}
-      <div className="absolute top-4 left-4 z-10 pointer-events-none select-none">
-        <h1 className="text-2xl font-display font-bold text-ion tracking-widest uppercase">
+      {/* Top-left branding + clock + nav */}
+      <div className="absolute top-4 left-4 z-10 select-none">
+        <h1 className="text-2xl font-display font-bold text-ion tracking-widest uppercase pointer-events-none">
           Mission Control
         </h1>
-        <p className="text-xs font-mono text-dust mt-1 flex items-center gap-2">
+        <p className="text-xs font-mono text-dust mt-1 flex items-center gap-2 pointer-events-none">
           {new Date(useMissionStore((s) => s.simulationTime)).toUTCString()}
           {isLive && (
             <span className="text-nova border border-nova/60 px-1 rounded text-[10px] animate-pulse">
@@ -51,7 +51,15 @@ function App() {
             </span>
           )}
         </p>
-        <p className="text-[10px] font-mono text-white/20 mt-0.5">⚠ Simulated telemetry</p>
+        <p className="text-[10px] font-mono text-white/20 mt-0.5 pointer-events-none">⚠ Simulated telemetry</p>
+        <div className="flex gap-3 mt-2 pointer-events-auto">
+          <a href="/alerts" className="text-[11px] font-mono text-white/40 hover:text-cyan-400 transition-colors border border-white/10 hover:border-cyan-400/40 px-2 py-0.5 rounded">
+            Alerts
+          </a>
+          <a href="/scenarios" className="text-[11px] font-mono text-white/40 hover:text-nova transition-colors border border-white/10 hover:border-nova/40 px-2 py-0.5 rounded">
+            ⚡ Chaos
+          </a>
+        </div>
       </div>
 
       {/* Top-right: Space Weather widget */}

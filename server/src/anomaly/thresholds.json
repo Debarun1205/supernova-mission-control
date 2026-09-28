@@ -1,0 +1,58 @@
+{
+  "battery_low_warning": {
+    "parameter": "power.soc",
+    "warnBelow": 25,
+    "critBelow": 10,
+    "hysteresis": 3,
+    "debounceSecs": 5,
+    "label": "Low Battery"
+  },
+  "battery_temp_high_warning": {
+    "parameter": "thermal.batteryTemp",
+    "warnAbove": 35,
+    "critAbove": 45,
+    "hysteresis": 2,
+    "debounceSecs": 10,
+    "label": "Battery Overtemperature"
+  },
+  "bus_temp_high_warning": {
+    "parameter": "thermal.busTemp",
+    "warnAbove": 40,
+    "critAbove": 55,
+    "hysteresis": 2,
+    "debounceSecs": 10,
+    "label": "Bus Overtemperature"
+  },
+  "pointing_error_high": {
+    "parameter": "adcs.pointingError",
+    "warnAbove": 3,
+    "critAbove": 8,
+    "hysteresis": 0.5,
+    "debounceSecs": 5,
+    "label": "Attitude Pointing Error"
+  },
+  "wheel_saturation": {
+    "parameter": "adcs.wheelSpeedRPM",
+    "warnAbove": 5500,
+    "critAbove": 5900,
+    "hysteresis": 100,
+    "debounceSecs": 5,
+    "label": "Reaction Wheel Saturation"
+  },
+  "radiation_seu_rate": {
+    "parameter": "radiation.doserate",
+    "warnAbove": 50,
+    "critAbove": 200,
+    "hysteresis": 10,
+    "debounceSecs": 3,
+    "label": "High Radiation Dose Rate"
+  },
+  "bus_voltage_low": {
+    "parameter": "power.busVoltage",
+    "warnBelow": 26.5,
+    "critBelow": 25.5,
+    "hysteresis": 0.3,
+    "debounceSecs": 5,
+    "label": "Low Bus Voltage"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "_disclaimer": "Illustrative runbooks for demo purposes only. Not official operational procedures.",
+  "battery_low_warning": [
+    "Check solar panel output current on Power subsystem page.",
+    "Verify satellite is not in extended eclipse; check ground track.",
+    "Reduce payload duty cycle or switch to safe mode if SOC < 15%.",
+    "Confirm battery heater is not drawing excess current.",
+    "Notify duty engineer if SOC continues to decline."
+  ],
+  "battery_temp_high_warning": [
+    "Check thermal subsystem for heater anomaly or blocked radiator.",
+    "Reduce battery charge current if above 1C rate.",
+    "Switch to eclipse thermal model if satellite is in sunlight longer than expected.",
+    "Consider early safe-mode entry if temperature exceeds 45°C.",
+    "Log event and cross-reference with radiation dose (SAA crossing?)."
+  ],
+  "bus_temp_high_warning": [
+    "Verify bus heater status and set-points.",
+    "Reduce payload operational time to lower internal dissipation.",
+    "Check for stuck-open valve or thermal strap disconnection.",
+    "Alert thermal engineer on duty."
+  ],
+  "pointing_error_high": [
+    "Check ADCS mode: is star tracker locked?",
+    "Verify reaction wheel speeds are within nominal range.",
+    "Check for external torque source (gravity gradient, atmospheric drag, magnetic).",
+    "If star-tracker is lost, fall back to coarse Sun sensor attitude.",
+    "Issue momentum dump command if wheel speeds are saturated."
+  ],
+  "wheel_saturation": [
+    "Issue momentum dump command via magnetic torquer.",
+    "Verify magnetic torquer coil currents are nominal.",
+    "Reduce slew rate to lower angular momentum buildup.",
+    "Check for persistent external torque causing constant wheel acceleration."
+  ],
+  "radiation_seu_rate": [
+    "Check if satellite is crossing the South Atlantic Anomaly.",
+    "Correlate with NOAA Kp index — elevated Kp increases SEU risk.",
+    "Verify error-correcting memory (EDAC) counters; reset if needed.",
+    "Consider switching to safe mode during severe radiation event.",
+    "Log all SEU events for post-pass analysis."
+  ],
+  "bus_voltage_low": [
+    "Check power bus shunt regulator status.",
+    "Verify no short-circuit condition on secondary buses.",
+    "Reduce non-essential loads to restore voltage margin.",
+    "Cross-check with battery SOC — low SOC is expected cause."
+  ],
+  "comms_anomaly": [
+    "Verify ground station is tracking and antenna is locked.",
+    "Check link budget: elevation angle above mask?",
+    "Verify transponder is in correct mode (uplink enable).",
+    "Attempt alternate ground station contact if available.",
+    "Check for interference or jamming source."
+  ]
+}

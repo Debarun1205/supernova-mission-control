@@ -221,6 +221,11 @@ export function simTick(simTimeMs?: number) {
 
     // Emit per-satellite high-rate detail to room subscribers
     io.to(`sat:${st.noradId}`).emit('telemetry:detail', sample);
+
+    // Part 5: run anomaly detector on every sample (async, non-blocking)
+    import('../anomaly/detector.js')
+      .then(({ detectAnomalies }) => detectAnomalies(sample))
+      .catch(() => {});
   }
 
   // Emit compact batch to all connected clients
