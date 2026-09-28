@@ -3,6 +3,7 @@ import { Globe } from './features/globe/Globe';
 import { SatellitePanel } from './features/satellite/SatellitePanel';
 import { SpaceWeatherWidget } from './features/weather/SpaceWeatherWidget';
 import { MissionAiDrawer } from './features/ai/MissionAiDrawer';
+import { GlobalHeader } from './components/GlobalHeader';
 import { useTelemetrySocket } from './hooks/useTelemetrySocket';
 import { useMissionStore } from './store/useMissionStore';
 
@@ -37,6 +38,8 @@ function App() {
 
   return (
     <div className="w-full h-full relative overflow-hidden bg-abyss text-starlight font-sans">
+      <GlobalHeader />
+
       {/* 3D Globe */}
       <Globe />
 
