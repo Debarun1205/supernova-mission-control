@@ -1,4 +1,4 @@
-﻿import * as comlink from 'comlink';
+import * as comlink from 'comlink';
 import * as satellite from 'satellite.js';
 
 let satellites: any[] = [];
@@ -30,16 +30,17 @@ export const PropagatorWorker = {
     for (const [id, satrec] of satrecs.entries()) {
       try {
         const pv = satellite.propagate(satrec, date);
-        if (pv.position && typeof pv.position !== 'boolean') {
+        if (pv && pv.position && typeof pv.position !== 'boolean') {
           // R3F coordinate system: Y is up, X is right, Z is forward
           // ECI to scene coordinates (roughly scale down Earth radius 6371 to 10 for visuals)
           const earthRadiusScene = 10;
           const earthRadiusKm = 6371;
           const scale = earthRadiusScene / earthRadiusKm;
           
-          positions[i * 3] = pv.position.x * scale;
-          positions[i * 3 + 1] = pv.position.z * scale; // Map Z to Y
-          positions[i * 3 + 2] = -pv.position.y * scale; // Map Y to -Z
+          const pos = pv.position as { x: number; y: number; z: number };
+          positions[i * 3] = pos.x * scale;
+          positions[i * 3 + 1] = pos.z * scale; // Map Z to Y
+          positions[i * 3 + 2] = -pos.y * scale; // Map Y to -Z
         }
       } catch(e) {
          // skip

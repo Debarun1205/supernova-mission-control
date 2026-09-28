@@ -31,12 +31,13 @@ function FleetMarker({
     if (!groupRef.current) return;
     const date = new Date(useMissionStore.getState().simulationTime);
     const pv = satellite.propagate(sat.satrec, date);
-    if (pv.position && typeof pv.position !== 'boolean') {
+    if (pv && pv.position && typeof pv.position !== 'boolean') {
+      const pos = pv.position as { x: number; y: number; z: number };
       const scale = 10 / 6371;
       groupRef.current.position.set(
-        pv.position.x * scale,
-        pv.position.z * scale,
-        -pv.position.y * scale,
+        pos.x * scale,
+        pos.z * scale,
+        -pos.y * scale,
       );
     }
   });

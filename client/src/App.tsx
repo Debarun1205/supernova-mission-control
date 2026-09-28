@@ -1,12 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Globe } from './features/globe/Globe';
 import { SatellitePanel } from './features/satellite/SatellitePanel';
 import { SpaceWeatherWidget } from './features/weather/SpaceWeatherWidget';
+import { MissionAiDrawer } from './features/ai/MissionAiDrawer';
 import { useTelemetrySocket } from './hooks/useTelemetrySocket';
 import { useMissionStore } from './store/useMissionStore';
 
 function App() {
   const { isLive, timeSpeed } = useMissionStore();
+  const [aiOpen, setAiOpen] = useState(false);
 
   // Connect Socket.IO and stream telemetry into store
   useTelemetrySocket();
@@ -59,8 +61,17 @@ function App() {
           <a href="/scenarios" className="text-[11px] font-mono text-white/40 hover:text-nova transition-colors border border-white/10 hover:border-nova/40 px-2 py-0.5 rounded">
             ⚡ Chaos
           </a>
+          <button
+            onClick={() => setAiOpen(true)}
+            className="text-[11px] font-mono text-cyan-300 hover:text-cyan-100 bg-cyan-950/60 border border-cyan-500/40 hover:border-cyan-400 px-2 py-0.5 rounded flex items-center gap-1 transition-colors"
+          >
+            🛰️ Mission AI (A)
+          </button>
         </div>
       </div>
+
+      {/* Mission AI Drawer */}
+      <MissionAiDrawer isOpen={aiOpen} onClose={() => setAiOpen(false)} />
 
       {/* Top-right: Space Weather widget */}
       <div className="absolute top-4 right-4 z-10 pointer-events-auto">

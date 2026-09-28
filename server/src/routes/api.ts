@@ -164,4 +164,76 @@ router.get('/status', (_req: Request, res: Response) => {
   res.json({ ok: true, weather: getCachedWeather() });
 });
 
+// ─── Part 6: Mission AI Endpoints ──────────────────────────────────────────────
+import { streamChatResponse, generateShiftReport } from '../ai/index.js';
+import { ChatSession } from '../models/index.js';
+
+router.post('/chat', async (req: Request, res: Response) => {
+  const { message, sessionId, history = [] } = req.body;
+  if (!message) return res.status(400).json({ error: 'Message required' });
+
+  // Set up SSE headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+
+  let fullReplyText = '';
+  const toolsUsed: string[] = [];
+
+  await streamChatResponse(
+    history,
+    message,
+    (token) => {
+      fullReplyText += token;
+      res.write(`data: ${JSON.stringify({ type: 'token', text: token })}\n\n`);
+    },
+    (chip, requiresConfirm, uiCommand) => {
+      toolsUsed.push(chip);
+      res.write(
+        `data: ${JSON.stringify({ type: 'tool', chip, requiresConfirm, uiCommand })}\n\n`
+      );
+    },
+    () => {
+      res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+      res.end();
+
+      // Persist to session if sessionId provided
+      if (sessionId) {
+        ChatSession.findByIdAndUpdate(sessionId, {
+          $push: {
+            messages: [
+              { role: 'user', content: message, timestamp: new Date() },
+              { role: 'model', content: fullReplyText, timestamp: new Date() },
+            ],
+          },
+        }).catch(() => {});
+      }
+    },
+    (errorMsg) => {
+      res.write(`data: ${JSON.stringify({ type: 'error', error: errorMsg })}\n\n`);
+      res.end();
+    }
+  );
+});
+
+router.get('/reports/shift', async (req: Request, res: Response) => {
+  const hours = Number(req.query.hours ?? 8);
+  const report = await generateShiftReport(hours);
+  res.json({ hours, report, generatedAt: new Date() });
+});
+
+router.get('/chat/sessions', async (_req: Request, res: Response) => {
+  const sessions = await ChatSession.find().sort({ updatedAt: -1 }).limit(10);
+  res.json(sessions);
+});
+
+router.post('/chat/sessions', async (req: Request, res: Response) => {
+  const session = await ChatSession.create({
+    title: req.body.title || 'New Mission Session',
+    messages: [],
+  });
+  res.json(session);
+});
+
 export default router;
