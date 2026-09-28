@@ -1,11 +1,17 @@
 import React, { useEffect } from 'react';
 import { Globe } from './features/globe/Globe';
 import { SatellitePanel } from './features/satellite/SatellitePanel';
+import { SpaceWeatherWidget } from './features/weather/SpaceWeatherWidget';
+import { useTelemetrySocket } from './hooks/useTelemetrySocket';
 import { useMissionStore } from './store/useMissionStore';
 
 function App() {
   const { isLive, timeSpeed } = useMissionStore();
 
+  // Connect Socket.IO and stream telemetry into store
+  useTelemetrySocket();
+
+  // Animation loop: advance simulation time
   useEffect(() => {
     let raf: number;
     let last = Date.now();
@@ -45,9 +51,15 @@ function App() {
             </span>
           )}
         </p>
+        <p className="text-[10px] font-mono text-white/20 mt-0.5">⚠ Simulated telemetry</p>
       </div>
 
-      {/* Satellite panel (Part 3) */}
+      {/* Top-right: Space Weather widget */}
+      <div className="absolute top-4 right-4 z-10 pointer-events-auto">
+        <SpaceWeatherWidget />
+      </div>
+
+      {/* Satellite detail panel (Part 3 + 4) */}
       <SatellitePanel />
 
       {/* Time Machine bar */}
@@ -61,13 +73,14 @@ function App() {
         <div className="w-px h-4 bg-white/20" />
         {[1, 10, 60, 600, 3600].map((speed) => {
           const active = timeSpeed === speed && !isLive;
-          const cls = active
-            ? 'font-mono text-sm px-2 py-1 text-green-400 underline underline-offset-2'
-            : 'font-mono text-sm px-2 py-1 text-white/40 hover:text-white transition-colors';
           return (
             <button
               key={speed}
-              className={cls}
+              className={
+                active
+                  ? 'font-mono text-sm px-2 py-1 text-green-400 underline underline-offset-2'
+                  : 'font-mono text-sm px-2 py-1 text-white/40 hover:text-white transition-colors'
+              }
               onClick={() => {
                 useMissionStore.getState().setLive(false);
                 useMissionStore.getState().setTimeSpeed(speed);

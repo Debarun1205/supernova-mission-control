@@ -9,8 +9,8 @@ import pino from 'pino';
 import cron from 'node-cron';
 
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import { GroundStation, Satellite, Telemetry } from './models';
-import apiRoutes from './routes/api';
+import { GroundStation, Satellite } from './models/index.js';
+import apiRoutes from './routes/api.js';
 
 dotenv.config({ path: '../.env' });
 
@@ -27,18 +27,13 @@ app.use(cors({ origin: process.env.CLIENT_ORIGIN || '*' }));
 app.use(express.json());
 app.use('/api', apiRoutes);
 
-app.get('/api/status', (_req, res) => {
-  res.json({
-    db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-    socketClients: io.engine.clientsCount,
-  });
-});
-
 // ─── Seeding ──────────────────────────────────────────────────────────────────
 const ISS_TLE1 = '1 25544U 98067A   24001.50000000  .00007000  00000-0  13000-3 0  9993';
 const ISS_TLE2 = '2 25544  51.6400 100.0000 0001234  10.0000 350.0000 15.50000000123456';
 const HST_TLE1 = '1 20580U 90037B   24001.50000000  .00002000  00000-0  10000-3 0  9990';
 const HST_TLE2 = '2 20580  28.4700 200.0000 0002500  20.0000 340.0000 15.09000000123457';
+const TERRA_TLE1 = '1 25994U 99068A   24001.50000000  .00000500  00000-0  80000-4 0  9998';
+const TERRA_TLE2 = '2 25994  98.2000 250.0000 0001000   5.0000 355.0000 14.57000000123458';
 
 async function seedIfEmpty() {
   const gsCount = await GroundStation.countDocuments();
@@ -56,27 +51,10 @@ async function seedIfEmpty() {
     await Satellite.insertMany([
       { noradId: 25544, name: 'ISS (ZARYA)', tier: 'fleet', health: 'nominal', tle1: ISS_TLE1, tle2: ISS_TLE2 },
       { noradId: 20580, name: 'HST', tier: 'fleet', health: 'nominal', tle1: HST_TLE1, tle2: HST_TLE2 },
+      { noradId: 25994, name: 'Terra', tier: 'fleet', health: 'nominal', tle1: TERRA_TLE1, tle2: TERRA_TLE2 },
     ]);
     logger.info('Fleet satellites seeded');
   }
-}
-
-// ─── Telemetry simulation tick ─────────────────────────────────────────────────
-async function simTick() {
-  const sats = await Satellite.find({ tier: 'fleet' });
-  const docs = sats.map((s) => ({
-    ts: new Date(),
-    satelliteId: s.noradId,
-    power: { soc: 70 + Math.random() * 25, solarCurrent: 1.2 + Math.random() * 0.5, busVoltage: 28 + Math.random() * 1 },
-    thermal: { batteryTemp: 15 + Math.random() * 10, busTemp: 20 + Math.random() * 5, payloadTemp: 18 + Math.random() * 8 },
-    comms: { signalStrength: -90 + Math.random() * 30, connectedStation: 'none' },
-    adcs: { pointingError: Math.random() * 0.5, wheelSpeedRPM: 3000 + Math.random() * 200 },
-    radiation: { seuCount: Math.floor(Math.random() * 3) },
-    mode: 'nominal',
-  }));
-
-  await Telemetry.insertMany(docs);
-  io.emit('telemetry', docs);
 }
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
@@ -95,8 +73,33 @@ async function startServer() {
 
   await seedIfEmpty();
 
-  // Emit live telemetry every 2 seconds
-  cron.schedule('*/2 * * * * *', simTick);
+  // Lazy-import to avoid circular dependency before io is set up
+  const { initSimulator, simTick } = await import('./simulation/index.js');
+  const { pollSpaceWeather } = await import('./services/spaceWeather.js');
+
+  await initSimulator();
+  logger.info('Physics simulator initialised');
+
+  // 1 Hz simulation tick
+  cron.schedule('* * * * * *', () => simTick());
+
+  // Space weather poll every 5 minutes
+  cron.schedule('*/5 * * * *', () => pollSpaceWeather());
+  pollSpaceWeather(); // initial fetch
+
+  // Socket room management
+  io.on('connection', (socket) => {
+    logger.info({ socketId: socket.id }, 'Client connected');
+    socket.on('subscribe:satellite', (noradId: number) => {
+      socket.join(`sat:${noradId}`);
+    });
+    socket.on('unsubscribe:satellite', (noradId: number) => {
+      socket.leave(`sat:${noradId}`);
+    });
+    socket.on('disconnect', () => {
+      logger.info({ socketId: socket.id }, 'Client disconnected');
+    });
+  });
 
   const PORT = process.env.PORT || 3000;
   server.listen(PORT, () => {
@@ -105,6 +108,6 @@ async function startServer() {
 }
 
 startServer().catch((err) => {
-  logger.error(err, 'Failed to start server');
+  logger.error(err, 'Fatal: server failed to start');
   process.exit(1);
 });

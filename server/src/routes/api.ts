@@ -1,11 +1,19 @@
 import { Router, Request, Response } from 'express';
-import { Satellite, Telemetry, Alert, Incident, GroundStation } from '../models';
+import { Satellite, Telemetry, Alert, GroundStation } from '../models/index.js';
 import * as satellite from 'satellite.js';
-import { predictPasses, screenConjunctions, getOrbitFacts, getSunPositionEci, isInEclipse } from '../services/orbital';
+import {
+  predictPasses,
+  screenConjunctions,
+  getOrbitFacts,
+  getSunPositionEci,
+  isInEclipse,
+} from '../services/orbital.js';
+import { getCachedWeather, pollSpaceWeather } from '../services/spaceWeather.js';
+import { injectFault, clearFault, type FaultType } from '../simulation/index.js';
 
 const router = Router();
 
-// ─── Satellites ──────────────────────────────────────────────────────────────
+// ─── Satellites ───────────────────────────────────────────────────────────────
 router.get('/satellites', async (req: Request, res: Response) => {
   const { tier, health, limit = '500' } = req.query;
   const filter: Record<string, unknown> = {};
@@ -21,49 +29,35 @@ router.get('/satellites/:id', async (req: Request, res: Response) => {
   res.json(sat);
 });
 
-// ─── Orbit facts (Part 3) ─────────────────────────────────────────────────────
 router.get('/satellites/:id/orbit-facts', async (req: Request, res: Response) => {
   const sat = await Satellite.findOne({ noradId: Number(req.params.id) });
-  if (!sat || !sat.tle1 || !sat.tle2) return res.status(404).json({ error: 'No TLE data' });
+  if (!sat?.tle1 || !sat?.tle2) return res.status(404).json({ error: 'No TLE data' });
   const satrec = satellite.twoline2satrec(sat.tle1, sat.tle2);
   res.json(getOrbitFacts(satrec));
 });
 
-// ─── Eclipse status (Part 3) ─────────────────────────────────────────────────
 router.get('/satellites/:id/eclipse', async (req: Request, res: Response) => {
   const sat = await Satellite.findOne({ noradId: Number(req.params.id) });
-  if (!sat || !sat.tle1 || !sat.tle2) return res.status(404).json({ error: 'No TLE data' });
-
+  if (!sat?.tle1 || !sat?.tle2) return res.status(404).json({ error: 'No TLE data' });
   const t = req.query.t ? new Date(String(req.query.t)) : new Date();
   const satrec = satellite.twoline2satrec(sat.tle1, sat.tle2);
   const pv = satellite.propagate(satrec, t);
-
   if (!pv.position || typeof pv.position === 'boolean') {
     return res.status(400).json({ error: 'Propagation failed' });
   }
-
   const sunPos = getSunPositionEci(t);
-  const inEclipse = isInEclipse(pv.position as { x: number; y: number; z: number }, sunPos);
-  res.json({ noradId: sat.noradId, time: t, inEclipse, sunPos });
+  const inEclipseNow = isInEclipse(pv.position as { x: number; y: number; z: number }, sunPos);
+  res.json({ noradId: sat.noradId, time: t, inEclipse: inEclipseNow, sunPos });
 });
 
-// ─── Pass predictions (Part 3) ────────────────────────────────────────────────
 router.get('/satellites/:id/passes', async (req: Request, res: Response) => {
   const sat = await Satellite.findOne({ noradId: Number(req.params.id) });
-  if (!sat || !sat.tle1 || !sat.tle2) return res.status(404).json({ error: 'No TLE data' });
-
+  if (!sat?.tle1 || !sat?.tle2) return res.status(404).json({ error: 'No TLE data' });
   const gsId = req.query.gsId ? String(req.query.gsId) : null;
-  let gs;
-  if (gsId) {
-    gs = await GroundStation.findById(gsId);
-  } else {
-    gs = await GroundStation.findOne(); // default to first
-  }
+  const gs = gsId ? await GroundStation.findById(gsId) : await GroundStation.findOne();
   if (!gs) return res.status(404).json({ error: 'No ground station found' });
-
-  const hours = Math.min(Number(req.query.hours || 24), 72);
+  const hours = Math.min(Number(req.query.hours ?? 24), 72);
   const startDate = req.query.start ? new Date(String(req.query.start)) : new Date();
-
   const satrec = satellite.twoline2satrec(sat.tle1, sat.tle2);
   const passes = predictPasses(
     satrec,
@@ -71,49 +65,45 @@ router.get('/satellites/:id/passes', async (req: Request, res: Response) => {
     startDate,
     hours,
   );
-
   res.json({ satellite: sat.noradId, groundStation: gs.name, passes });
 });
 
-// ─── Conjunctions (Part 3) ───────────────────────────────────────────────────
+// ─── Conjunctions ─────────────────────────────────────────────────────────────
 router.get('/conjunctions', async (req: Request, res: Response) => {
-  const threshold = Number(req.query.threshold || 20);
+  const threshold = Number(req.query.threshold ?? 20);
   const t = req.query.t ? new Date(String(req.query.t)) : new Date();
-
   const sats = await Satellite.find({ tle1: { $exists: true }, tle2: { $exists: true } });
   const parsed = sats
     .filter((s) => s.tle1 && s.tle2)
-    .map((s) => ({
-      noradId: s.noradId,
-      satrec: satellite.twoline2satrec(s.tle1!, s.tle2!),
-    }));
-
+    .map((s) => ({ noradId: s.noradId, satrec: satellite.twoline2satrec(s.tle1!, s.tle2!) }));
   const conjunctions = screenConjunctions(parsed, t, threshold);
-  res.json({ time: t, threshold, conjunctions });
+  res.json({
+    time: t,
+    threshold,
+    disclaimer: 'Screening estimates from public TLEs, not operational collision warnings.',
+    conjunctions,
+  });
 });
 
 // ─── Ground Stations ──────────────────────────────────────────────────────────
 router.get('/ground-stations', async (_req: Request, res: Response) => {
-  const stations = await GroundStation.find();
-  res.json(stations);
+  res.json(await GroundStation.find());
 });
 
 // ─── Telemetry ────────────────────────────────────────────────────────────────
 router.get('/telemetry/:satelliteId', async (req: Request, res: Response) => {
   const docs = await Telemetry.find({ satelliteId: Number(req.params.satelliteId) })
     .sort({ ts: -1 })
-    .limit(60);
-  res.json(docs);
+    .limit(Number(req.query.limit ?? 120));
+  res.json(docs.reverse()); // chronological order for charts
 });
 
-// ─── Alerts ──────────────────────────────────────────────────────────────────
+// ─── Alerts ───────────────────────────────────────────────────────────────────
 router.get('/alerts', async (req: Request, res: Response) => {
-  const { status, satelliteId } = req.query;
   const filter: Record<string, unknown> = {};
-  if (status) filter.status = status;
-  if (satelliteId) filter.satelliteId = Number(satelliteId);
-  const alerts = await Alert.find(filter).sort({ createdAt: -1 }).limit(100);
-  res.json(alerts);
+  if (req.query.status) filter.status = req.query.status;
+  if (req.query.satelliteId) filter.satelliteId = Number(req.query.satelliteId);
+  res.json(await Alert.find(filter).sort({ createdAt: -1 }).limit(100));
 });
 
 router.patch('/alerts/:id/acknowledge', async (req: Request, res: Response) => {
@@ -136,9 +126,42 @@ router.patch('/alerts/:id/resolve', async (req: Request, res: Response) => {
   res.json(alert);
 });
 
+// ─── Space Weather (Part 4) ───────────────────────────────────────────────────
+router.get('/space-weather', async (_req: Request, res: Response) => {
+  const data = await pollSpaceWeather();
+  res.json(data);
+});
+
+// ─── Chaos fault injection (Part 4) ──────────────────────────────────────────
+const VALID_FAULTS: FaultType[] = [
+  'solar_flare', 'battery_cell', 'wheel_saturation',
+  'star_tracker_loss', 'thermal_runaway', 'comms_dropout', 'safe_mode',
+];
+
+router.post('/scenarios/inject', (req: Request, res: Response) => {
+  const { noradId, fault } = req.body;
+  if (!noradId || !fault) return res.status(400).json({ error: 'noradId and fault required' });
+  if (!VALID_FAULTS.includes(fault)) return res.status(400).json({ error: 'Invalid fault type', valid: VALID_FAULTS });
+  const ok = injectFault(Number(noradId), fault as FaultType);
+  if (!ok) return res.status(404).json({ error: 'Satellite not found in simulator' });
+  res.json({ injected: true, noradId, fault });
+});
+
+router.post('/scenarios/clear', (req: Request, res: Response) => {
+  const { noradId, fault } = req.body;
+  if (!noradId || !fault) return res.status(400).json({ error: 'noradId and fault required' });
+  const ok = clearFault(Number(noradId), fault as FaultType);
+  if (!ok) return res.status(404).json({ error: 'Satellite not found in simulator' });
+  res.json({ cleared: true, noradId, fault });
+});
+
+router.get('/scenarios/faults', (_req: Request, res: Response) => {
+  res.json({ available: VALID_FAULTS });
+});
+
 // ─── Status ───────────────────────────────────────────────────────────────────
 router.get('/status', (_req: Request, res: Response) => {
-  res.json({ ok: true });
+  res.json({ ok: true, weather: getCachedWeather() });
 });
 
 export default router;
