@@ -71,3 +71,4 @@ const chatSessionSchema = new mongoose.Schema({
 });
 
 export const ChatSession = mongoose.model('ChatSession', chatSessionSchema);
+export { Satellite } from './Satellite';

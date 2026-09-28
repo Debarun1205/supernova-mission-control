@@ -9,13 +9,13 @@ const logger = pino({ transport: { target: 'pino-pretty' } });
 export class CelestrakService {
   static async fetchGroup(group: string) {
     try {
-      const res = await axios.get(https://celestrak.org/NORAD/elements/gp.php?GROUP=&FORMAT=json);
+      const res = await axios.get(`https://celestrak.org/NORAD/elements/gp.php?GROUP=${group}&FORMAT=json`);
       if (res.data && Array.isArray(res.data)) {
         return res.data;
       }
       throw new Error('Invalid format');
     } catch (error) {
-      logger.error(Failed to fetch group  from Celestrak:, error);
+      logger.error(`Failed to fetch group ${group} from Celestrak:`, error);
       return null;
     }
   }
@@ -37,7 +37,7 @@ export class CelestrakService {
       let data = await this.fetchGroup(group);
       
       if (!data) {
-        logger.warn(Using fallback data for group );
+        logger.warn(`Using fallback data for group ${group}`);
         data = snapshotData.filter(d => d.GROUP === group);
       } else {
         // Update snapshot with new data (simplified)

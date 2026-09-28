@@ -51,7 +51,9 @@ async function seedIfEmpty() {
       name: `Sat ${id}`,
       noradId: id,
       tier: 'fleet',
-      health: 'nominal'
+      health: 'nominal',
+      tle1: "1 25544U 98067A   24001.12345678  .00012345  00000-0  12345-3 0  9992",
+      tle2: "2 25544  51.6400  12.3456 0001234  12.3456  12.3456 15.50000000123456"
     })));
   }
 }
@@ -70,7 +72,11 @@ async function startServer() {
     .then(async () => {
       logger.info(`Connected to MongoDB at ${mongoUri}`);
       if (process.env.USE_MEMORY_DB === 'true') {
-         await seedIfEmpty();
+         try {
+           await seedIfEmpty();
+         } catch(e) {
+           console.error("SEEDING ERROR", e);
+         }
       }
       
       // Start simulator
@@ -78,18 +84,12 @@ async function startServer() {
         Simulator.tick();
       });
 
-      // Daily Celestrak Sync
-      cron.schedule(process.env.SYNC_CRON || '0 */2 * * *', () => {
-        const groups = (process.env.CELESTRAK_GROUPS || 'stations').split(',');
-        CelestrakService.syncGroups(groups);
-      });
-
       server.listen(PORT, () => {
         logger.info(`Server running on port ${PORT}`);
       });
     })
     .catch(err => {
-      logger.error('Failed to connect to MongoDB', err);
+      console.error('Failed to connect to MongoDB', err);
     });
 }
 
