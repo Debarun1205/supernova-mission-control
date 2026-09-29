@@ -4,12 +4,14 @@ import { useMissionStore } from '../store/useMissionStore';
 import { CommandPalette } from './CommandPalette';
 import { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
 import { MissionAiDrawer } from '../features/ai/MissionAiDrawer';
+import { DemoTourOverlay } from '../features/demo/DemoTourOverlay';
 
 export function GlobalHeader() {
   const { isLive, simulationTime } = useMissionStore();
   const [cmdOpen, setCmdOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const [demoActive, setDemoActive] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [reduceMotion, setReduceMotion] = useState(false);
   const navigate = useNavigate();
@@ -65,6 +67,13 @@ export function GlobalHeader() {
         {/* Right: Actions & Tools */}
         <div className="flex items-center gap-2 text-[11px]">
           <button
+            onClick={() => setDemoActive(true)}
+            className="px-2.5 py-0.5 rounded bg-gradient-to-r from-cyan-500/20 to-nova/20 hover:from-cyan-500/40 hover:to-nova/40 border border-cyan-500/40 text-cyan-300 font-bold transition-colors animate-pulse"
+          >
+            ▶ Demo Mode
+          </button>
+
+          <button
             onClick={() => setCmdOpen(true)}
             className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white transition-colors flex items-center gap-1"
           >
@@ -102,6 +111,7 @@ export function GlobalHeader() {
       <CommandPalette isOpen={cmdOpen} onClose={() => setCmdOpen(false)} />
       <KeyboardShortcutsModal isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <MissionAiDrawer isOpen={aiOpen} onClose={() => setAiOpen(false)} />
+      <DemoTourOverlay isActive={demoActive} onCancel={() => setDemoActive(false)} />
     </>
   );
 }
