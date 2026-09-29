@@ -98,6 +98,31 @@ router.get('/telemetry/:satelliteId', async (req: Request, res: Response) => {
   res.json(docs.reverse()); // chronological order for charts
 });
 
+// Telemetry Export (CSV / JSON)
+router.get('/telemetry/:satelliteId/export', async (req: Request, res: Response) => {
+  const format = String(req.query.format ?? 'csv').toLowerCase();
+  const docs = await Telemetry.find({ satelliteId: Number(req.params.satelliteId) })
+    .sort({ ts: -1 })
+    .limit(500)
+    .lean();
+
+  if (format === 'json') {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="telemetry_${req.params.satelliteId}.json"`);
+    return res.json(docs);
+  }
+
+  // CSV Export
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="telemetry_${req.params.satelliteId}.csv"`);
+  let csv = 'Timestamp,SatelliteID,SOC,BatteryTemp,BusVoltage,PointingError,SEUCount,Mode,HealthScore\n';
+  for (const d of docs) {
+    const t = d as any;
+    csv += `${new Date(t.ts).toISOString()},${t.satelliteId},${t.power?.soc ?? ''},${t.thermal?.batteryTemp ?? ''},${t.power?.busVoltage ?? ''},${t.adcs?.pointingError ?? ''},${t.radiation?.seuCount ?? ''},${t.mode ?? ''},${t.healthScore ?? ''}\n`;
+  }
+  res.send(csv);
+});
+
 // ─── Alerts ───────────────────────────────────────────────────────────────────
 router.get('/alerts', async (req: Request, res: Response) => {
   const filter: Record<string, unknown> = {};

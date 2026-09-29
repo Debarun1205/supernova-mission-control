@@ -12,6 +12,7 @@ import { MissionAiPage } from './features/ai/MissionAiPage.tsx';
 import { ShiftReportPage } from './features/reports/ShiftReportPage.tsx';
 import { SkyViewPage } from './features/sky/SkyViewPage.tsx';
 import { SettingsPage } from './features/settings/SettingsPage.tsx';
+import { PublicStatusPage } from './features/status/PublicStatusPage.tsx';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -27,6 +28,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/ai" element={<MissionAiPage />} />
         <Route path="/reports" element={<ShiftReportPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/status-page" element={<PublicStatusPage />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>
