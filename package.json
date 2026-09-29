@@ -11,5 +11,8 @@
     "dev": "npm run dev --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
     "seed": "npm run seed -w server"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.2"
   }
 }
