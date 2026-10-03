@@ -13,6 +13,7 @@ import { ShiftReportPage } from './features/reports/ShiftReportPage.tsx';
 import { SkyViewPage } from './features/sky/SkyViewPage.tsx';
 import { SettingsPage } from './features/settings/SettingsPage.tsx';
 import { PublicStatusPage } from './features/status/PublicStatusPage.tsx';
+import { CosmicUniverseExplorerPage } from './features/space/CosmicUniverseExplorerPage.tsx';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -22,6 +23,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/console" element={<App />} />
         <Route path="/satellites" element={<SatelliteExplorer />} />
         <Route path="/satellites/:id" element={<SatelliteDetailPage />} />
+        <Route path="/universe" element={<CosmicUniverseExplorerPage />} />
         <Route path="/alerts" element={<AlertCenter />} />
         <Route path="/sky" element={<SkyViewPage />} />
         <Route path="/scenarios" element={<ChaosPanel />} />

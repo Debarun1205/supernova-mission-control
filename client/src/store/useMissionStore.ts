@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { CelestialTarget } from '../../../shared/space/index.ts';
 
 interface SpaceWeather {
   kp: number;
@@ -18,6 +19,15 @@ interface TelemetrySample {
   healthScore: number;
 }
 
+export interface LayerVisibility {
+  satellites: boolean;
+  spaceCenters: boolean;
+  groundStations: boolean;
+  deepSpaceProbes: boolean;
+  celestialBodies: boolean;
+  orbitTraces: boolean;
+}
+
 interface MissionStore {
   // Time
   simulationTime: number;
@@ -30,6 +40,16 @@ interface MissionStore {
   // Selection
   selectedSatelliteId: number | null;
   setSelectedSatellite: (id: number | null) => void;
+  selectedProbeId: string | null;
+  setSelectedProbe: (id: string | null) => void;
+
+  // Celestial Interstellar Travel
+  activeCelestialTarget: CelestialTarget | null;
+  setActiveCelestialTarget: (target: CelestialTarget | null) => void;
+
+  // Layer Visibility Legend Toggles
+  layers: LayerVisibility;
+  toggleLayer: (layer: keyof LayerVisibility) => void;
 
   // Live telemetry (keyed by noradId)
   latestTelemetry: Record<number, TelemetrySample>;
@@ -52,7 +72,27 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
 
   // Selection
   selectedSatelliteId: null,
-  setSelectedSatellite: (id) => set({ selectedSatelliteId: id }),
+  setSelectedSatellite: (id) => set({ selectedSatelliteId: id, selectedProbeId: null }),
+  selectedProbeId: null,
+  setSelectedProbe: (id) => set({ selectedProbeId: id, selectedSatelliteId: null }),
+
+  // Celestial Interstellar Travel
+  activeCelestialTarget: null,
+  setActiveCelestialTarget: (target) => set({ activeCelestialTarget: target }),
+
+  // Layer Visibility
+  layers: {
+    satellites: true,
+    spaceCenters: true,
+    groundStations: true,
+    deepSpaceProbes: true,
+    celestialBodies: true,
+    orbitTraces: true,
+  },
+  toggleLayer: (layer) =>
+    set((state) => ({
+      layers: { ...state.layers, [layer]: !state.layers[layer] },
+    })),
 
   // Telemetry
   latestTelemetry: {},
