@@ -1,25 +1,41 @@
 import React, { useRef } from 'react';
 import { Html } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { SPACE_CENTERS, type SpaceCenter } from '../../../../../shared/space/index';
 import { useMissionStore } from '../../../store/useMissionStore';
 
+/**
+ * Convert geographic lat/lon to a Three.js Vector3 on the globe surface.
+ * Convention (matching Three.js SphereGeometry default UV mapping):
+ *   lon=0°  (prime meridian) → +Z axis (facing camera at z=25)
+ *   lon=90°E → +X axis
+ *   lat=90°N → +Y axis
+ */
 function latLonToVector3(lat: number, lon: number, radius = 10.05): THREE.Vector3 {
-  const phi = (90 - lat) * (Math.PI / 180);
-  const theta = (lon + 180) * (Math.PI / 180);
-  const x = -(radius * Math.sin(phi) * Math.cos(theta));
-  const z = radius * Math.sin(phi) * Math.sin(theta);
-  const y = radius * Math.cos(phi);
+  const latRad = (lat * Math.PI) / 180;
+  const lonRad = (lon * Math.PI) / 180;
+  const x = radius * Math.cos(latRad) * Math.sin(lonRad);
+  const y = radius * Math.sin(latRad);
+  const z = radius * Math.cos(latRad) * Math.cos(lonRad);
   return new THREE.Vector3(x, y, z);
 }
 
 export function SpaceCenters() {
   const visible = useMissionStore((s) => s.layers.spaceCenters);
+  const groupRef = useRef<THREE.Group>(null);
+
+  // Mirror the Earth's GMST-driven rotation so pins stay on correct continents
+  useFrame(() => {
+    if (!groupRef.current) return;
+    const simTime = useMissionStore.getState().simulationTime;
+    groupRef.current.rotation.y = (simTime / 1000 / 86400) * Math.PI * 2;
+  });
 
   if (!visible) return null;
 
   return (
-    <group>
+    <group ref={groupRef}>
       {SPACE_CENTERS.map((sc: SpaceCenter) => {
         const pos = latLonToVector3(sc.lat, sc.lon);
         const isVenue = sc.id === 'uem_kolkata';

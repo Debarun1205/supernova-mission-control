@@ -15,6 +15,7 @@ import { SettingsPage } from './features/settings/SettingsPage.tsx';
 import { PublicStatusPage } from './features/status/PublicStatusPage.tsx';
 import { CosmicUniverseExplorerPage } from './features/space/CosmicUniverseExplorerPage.tsx';
 import { SpaceExplorePage } from './features/explore/SpaceExplorePage.tsx';
+import { SolarSystemPage } from './features/solar-system/SolarSystemPage.tsx';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -26,6 +27,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/satellites/:id" element={<SatelliteDetailPage />} />
         <Route path="/universe" element={<CosmicUniverseExplorerPage />} />
         <Route path="/explore" element={<SpaceExplorePage />} />
+        <Route path="/solar-system" element={<SolarSystemPage />} />
         <Route path="/alerts" element={<AlertCenter />} />
         <Route path="/sky" element={<SkyViewPage />} />
         <Route path="/scenarios" element={<ChaosPanel />} />

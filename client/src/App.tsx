@@ -43,8 +43,8 @@ function App() {
       {/* 3D Globe */}
       <Globe />
 
-      {/* Top-left branding + clock + nav */}
-      <div className="absolute top-4 left-4 z-10 select-none">
+      {/* Top-left branding + clock + nav — starts BELOW the 40px GlobalHeader */}
+      <div className="absolute top-12 left-4 z-10 select-none">
         <h1 className="text-2xl font-display font-bold text-ion tracking-widest uppercase pointer-events-none">
           Mission Control
         </h1>

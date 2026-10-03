@@ -1,5 +1,24 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, Component } from 'react';
 import { GlobalHeader } from '../../components/GlobalHeader';
+
+// ─── Error Boundary (prevents blank screen on section errors) ─────────────────
+class ErrorBoundary extends Component<{ children: React.ReactNode }, { error: string | null }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(err: Error) { return { error: err.message }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="text-red-400 text-xs p-4 border border-red-500/20 rounded-xl bg-red-950/20">
+          ⚠ Section unavailable: {this.state.error}
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -295,7 +314,8 @@ function AstronautsSection() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('https://corsproxy.io/?https://api.open-notify.org/astros.json')
+    // open-notify.org natively supports CORS — no proxy needed
+    fetch('http://api.open-notify.org/astros.json')
       .then((r) => r.json())
       .then((d: AstrosResponse) => {
         setPeople(d.people);
@@ -456,6 +476,16 @@ function SolarSystemSection() {
   const CX = 90;
   const CY = SYSTEM_HEIGHT / 2;
 
+  // Pre-compute starfield so Math.random isn't called during every render
+  const stars = useMemo(() =>
+    Array.from({ length: 60 }, (_, i) => ({
+      id: i,
+      w: Math.random() > 0.8 ? 2 : 1,
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      opacity: Math.random() * 0.6 + 0.1,
+    })), []);
+
   return (
     <section className="mb-20">
       <SectionHeader>🪐 Interactive Solar System</SectionHeader>
@@ -466,19 +496,19 @@ function SolarSystemSection() {
         style={{ padding: '32px 16px' }}
       >
         <div style={{ minWidth: SYSTEM_WIDTH, position: 'relative', height: SYSTEM_HEIGHT }}>
-          {/* Starfield dots */}
-          {Array.from({ length: 60 }).map((_, i) => (
+          {/* Starfield dots — pre-computed to avoid Math.random in render */}
+          {stars.map((s) => (
             <div
-              key={i}
+              key={s.id}
               style={{
                 position: 'absolute',
-                width: Math.random() > 0.8 ? 2 : 1,
-                height: Math.random() > 0.8 ? 2 : 1,
+                width: s.w,
+                height: s.w,
                 borderRadius: '50%',
                 background: 'white',
-                opacity: Math.random() * 0.6 + 0.1,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
+                opacity: s.opacity,
+                left: `${s.left}%`,
+                top: `${s.top}%`,
               }}
             />
           ))}
@@ -716,11 +746,11 @@ export function SpaceExplorePage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 pb-20">
-        <ApodSection />
-        <AstronautsSection />
-        <IssSection />
-        <SolarSystemSection />
-        <FactsTicker />
+        <ErrorBoundary><ApodSection /></ErrorBoundary>
+        <ErrorBoundary><AstronautsSection /></ErrorBoundary>
+        <ErrorBoundary><IssSection /></ErrorBoundary>
+        <ErrorBoundary><SolarSystemSection /></ErrorBoundary>
+        <ErrorBoundary><FactsTicker /></ErrorBoundary>
       </div>
     </div>
   );

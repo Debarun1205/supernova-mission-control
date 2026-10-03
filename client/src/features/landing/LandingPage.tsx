@@ -160,10 +160,11 @@ export function LandingPage() {
 
   // ── Quick-explore pills ────────────────────────────────────────────────────
   const PILLS = [
-    { label: '🛰️ Satellites', path: '/satellites' },
-    { label: '🌌 Universe',   path: '/universe' },
-    { label: '🌠 Explore',    path: '/explore' },
-    { label: '🤖 Ask AI',     path: '/ai' },
+    { label: '🛰️ Satellites',   path: '/satellites' },
+    { label: '🪐 Solar System', path: '/solar-system' },
+    { label: '🌌 Universe',     path: '/universe' },
+    { label: '🌠 Explore',      path: '/explore' },
+    { label: '🤖 Ask AI',       path: '/ai' },
   ];
 
   return (
