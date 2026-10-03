@@ -12,6 +12,7 @@ import { LayerControlLegend } from './components/LayerControlLegend';
 import { SatelliteZoomBridge, SatelliteOverlayView, type SatZoomState } from './components/SatelliteZoomOverlay';
 import { CelestialTravelModal } from '../space/CelestialTravelModal';
 import { DeepSpaceProbeModal } from '../space/DeepSpaceProbeModal';
+import { SpaceSoundPlayer } from '../../components/SpaceSoundPlayer';
 
 export function Globe() {
   const [satState, setSatState] = useState<SatZoomState>({
@@ -67,6 +68,7 @@ export function Globe() {
       <LayerControlLegend />
       <CelestialTravelModal />
       <DeepSpaceProbeModal />
+      <SpaceSoundPlayer />
     </div>
   );
 }

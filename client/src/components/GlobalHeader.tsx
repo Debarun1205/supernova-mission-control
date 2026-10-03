@@ -57,6 +57,7 @@ export function GlobalHeader() {
         <nav className="flex items-center gap-4 text-[11px]">
           <Link to="/console" className="text-white/60 hover:text-cyan-300 transition-colors">Console</Link>
           <Link to="/satellites" className="text-white/60 hover:text-cyan-300 transition-colors">Explorer</Link>
+          <Link to="/explore" className="text-yellow-300 font-bold hover:text-white transition-colors">🌠 Explore</Link>
           <Link to="/universe" className="text-cyan-300 font-bold hover:text-white transition-colors">🌌 Universe</Link>
           <Link to="/alerts" className="text-white/60 hover:text-cyan-300 transition-colors">Alerts</Link>
           <Link to="/sky" className="text-white/60 hover:text-cyan-300 transition-colors">Sky</Link>
